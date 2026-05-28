@@ -11,7 +11,7 @@ localrules:
 rule all:
     input:
         expand("results/horesh/{name}", name=config["horesh_download"]),
-        "results/homology/focal_vs_horesh_mapping.csv",
+        "results/presence_absence/focal_vs_horesh.csv",
 
 
 rule horesh_download:
@@ -48,7 +48,7 @@ rule blastn_focal_genes:
     output:
         tsv="results/blastn/focal_vs_horesh_raw.tsv",
     log:
-        "logs/blastn/focal_vs_horesh.log",
+        "logs/blastn_focal_genes.log",
     conda:
         "config/conda_envs/blast.yaml"
     threads: 4
@@ -81,7 +81,7 @@ rule parse_homology:
         mapping="results/homology/focal_vs_horesh_mapping.csv",
         unmatched="results/homology/focal_vs_horesh_unmatched.txt",
     log:
-        "logs/homology/focal_vs_horesh.log",
+        "logs/parse_homology.log",
     conda:
         "config/conda_envs/bioinfo.yml"
     params:
@@ -98,5 +98,25 @@ rule parse_homology:
             --min-pident {params.min_pident} \
             --min-qcovs {params.min_qcovs} \
             --min-scovs {params.min_scovs} \
+            >{log} 2>&1
+        """
+
+
+rule focal_genes_presence_absence:
+    input:
+        mapping=rules.parse_homology.output.mapping,
+        pa="results/horesh/F4_complete_presence_absence.csv",
+    output:
+        "results/presence_absence/focal_vs_horesh.csv",
+    log:
+        "logs/focal_genes_presence_absence.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    shell:
+        """
+        python3 scripts/focal_genes_presence_absence.py \
+            --mapping {input.mapping} \
+            --presence-absence {input.pa} \
+            --output {output} \
             >{log} 2>&1
         """
