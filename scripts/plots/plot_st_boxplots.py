@@ -2,7 +2,7 @@
 
 For each Sequence Type with >= MIN_ST_SIZE isolates, plot the distribution of
 focal-gene counts per isolate. STs are colored by their dominant phylogroup.
-Produces two figures: (1) boxplot only; (2) boxplot + ST-size sidebar.
+A right-hand sidebar reports the per-ST isolate count on a log scale.
 """
 
 import argparse
@@ -35,8 +35,7 @@ def parse_args():
     p.add_argument("--pa", required=True, help="Focal-gene presence/absence CSV")
     p.add_argument("--gene-info", required=True, help="Focal gene_info CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
-    p.add_argument("--out-boxplot", required=True, nargs="+", help="Output path(s) for the boxplot figure (format inferred from extension; pass one per format)")
-    p.add_argument("--out-boxplot-with-counts", required=True, nargs="+", help="Output path(s) for the boxplot+counts figure")
+    p.add_argument("--out-boxplot", required=True, nargs="+", help="Output path(s) for the boxplot+counts figure (format inferred from extension; pass one per format)")
     p.add_argument("--high-load-threshold", type=int, required=True, help="Gene-count threshold marking 'high-load' isolates")
     return p.parse_args()
 
@@ -135,15 +134,7 @@ def main():
     st_order = count_df.groupby("ST")[col].median().sort_values().index
     palette = {st: PG_PALETTE.get(st_to_pg.get(st, "?"), DEFAULT_PG_COLOR) for st in st_order}
 
-    # Figure 1: boxplot only
-    fig, ax = plt.subplots(figsize=(6, 10))
-    draw_st_boxplot(ax, count_df, col, label, st_order, palette, st_to_pg, args.high_load_threshold)
-    plt.tight_layout()
-    save_fig(fig, args.out_boxplot)
-    print(f"Saved {args.out_boxplot}")
-
-    # Figure 2: boxplot + ST-size sidebar
-    fig2, (ax_box, ax_bar) = plt.subplots(
+    fig, (ax_box, ax_bar) = plt.subplots(
         1,
         2,
         figsize=(8, 10),
@@ -165,8 +156,8 @@ def main():
     ax_bar.spines[["top", "right"]].set_visible(False)
     ax_bar.set_ylim(len(st_order) - 0.5, -0.5)
     plt.tight_layout()
-    save_fig(fig2, args.out_boxplot_with_counts)
-    print(f"Saved {args.out_boxplot_with_counts}")
+    save_fig(fig, args.out_boxplot)
+    print(f"Saved {args.out_boxplot}")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ rule all:
         expand("results/horesh/{name}", name=config["horesh_download"]),
         "results/presence_absence/focal_vs_horesh.csv",
         "results/figs/st_boxplots.png",
-        "results/figs/st_boxplots_with_counts.png",
         "results/figs/gene_enrichment_scatter.png",
         "results/figs/st_isolates_per_st.png",
         "results/figs/st_pairwise_distance.png",
@@ -132,7 +131,6 @@ rule plot_st_boxplots:
         metadata="results/horesh/F1_genome_metadata.csv",
     output:
         boxplot=multiext("results/figs/st_boxplots", ".png", ".pdf"),
-        with_counts=multiext("results/figs/st_boxplots_with_counts", ".png", ".pdf"),
     log:
         "logs/plot_st_boxplots.log",
     conda:
@@ -146,7 +144,6 @@ rule plot_st_boxplots:
             --gene-info {input.gene_info} \
             --metadata {input.metadata} \
             --out-boxplot {output.boxplot} \
-            --out-boxplot-with-counts {output.with_counts} \
             --high-load-threshold {params.high_load_threshold} \
             >{log} 2>&1
         """
