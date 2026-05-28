@@ -3,3 +3,12 @@ horesh_download:
   F3_pan_genome_reference.fa: https://ndownloader.figshare.com/files/26133194
   F4_complete_presence_absence.csv: https://ndownloader.figshare.com/files/25552529
   tree_500.nwk: https://ndownloader.figshare.com/files/25552547
+
+focal_genes:
+  cons_seq: "config/focal_genes/consensus_sequences.tar.xz"
+  gene_info: "config/focal_genes/gene_info.tar.xz"
+
+homology:
+  min_pident: 85   # minimum percent identity (blastn nucleotide)
+  min_qcovs: 85    # minimum query coverage (lenient: consensus can be longer than reference)
+  min_scovs: 85    # minimum subject coverage (strict: require most of the reference gene to be covered)

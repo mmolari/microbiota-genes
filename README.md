@@ -5,7 +5,7 @@
 The pipeline can be run using snakemake (tested on version 9.20.0)
 
 ```bash
-snakemake -c1 --use-conda all
+snakemake -c4 --use-conda all
 ```
 
 ## Dataset
