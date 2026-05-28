@@ -40,9 +40,11 @@ After inspecting the [distribution of the total number of focal genes](../result
 ## Genes enriched in high-load strains
 
 To identify genes that are enriched in high-load strains, [we compare the frequency of each gene in high-load strains to its frequency in the remaining (other) strains](../results/figs/gene_enrichment_scatter.png). Moreover, to prioritise genes that are not only enriched but also widely distributed across, we compute for each the **ST participation ratio.**, defined as:
+
 $$
 r = \frac{\left(\sum_i f_i\right)^2}{\sum_i f_i^2}
 $$
+
 where $f_i$ is the frequency of the gene in ST $i$ (fraction of ST-$i$ isolates carrying it), summed over STs with ≥10 isolates. $r$ quantifies the effective number of STs in which the gene is commonly found.
 
 ## Pipeline overview and additional outputs
