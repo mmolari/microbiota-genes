@@ -19,3 +19,8 @@ snakemake -c4 --use-conda
 
 The main results produced are the figures (in `results/figs/`) and the focal-gene presence/absence matrix (in `results/presence_absence.csv`)
 
+## Citation
+
+The dataset in this repository is based on the pangenome collection of [Horesh et al. 2021](https://doi.org/10.1099/mgen.0.000499), published in:
+
+Horesh, Gal, et al. "_A comprehensive and high-quality collection of Escherichia coli genomes and their genes._" Microbial genomics 7.2 (2021): 000499.
