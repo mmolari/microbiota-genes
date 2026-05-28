@@ -8,7 +8,7 @@ localrules:
 rule all:
     input:
         expand("results/horesh/{name}", name=config["horesh_download"]),
-        "results/presence_absence/focal_vs_horesh.csv",
+        "results/presence_absence.csv",
         "results/figs/st_boxplots.png",
         "results/figs/gene_enrichment_scatter.png",
         "results/figs/st_isolates_per_st.png",
@@ -109,7 +109,7 @@ rule focal_genes_presence_absence:
         mapping=rules.parse_homology.output.mapping,
         pa="results/horesh/F4_complete_presence_absence.csv",
     output:
-        "results/presence_absence/focal_vs_horesh.csv",
+        "results/presence_absence.csv",
     log:
         "logs/focal_genes_presence_absence.log",
     conda:
