@@ -1,4 +1,7 @@
-/results
+/results/*
+!/results/figs/
+/results/figs/*
+!/results/figs/*.png
 /.snakemake
 /logs
 __pycache__
