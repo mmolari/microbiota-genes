@@ -7,32 +7,39 @@ Input contract
 --------------
 A 12-column tabular file with the same columns as `blastn -outfmt 6`:
     qseqid sseqid pident length qlen slen qstart qend sstart send evalue bitscore
-For mmseqs2, use `easy-search --format-output "query,target,pident,alnlen,qlen,
-tlen,qstart,qend,tstart,tend,evalue,bits"`. With `--search-type 2`, `pident`,
-`length`, `qlen` and `slen` are all in amino-acid units, so the qcov/scov
-arithmetic below remains unit-consistent.
+
+BLAST emits one row per HSP, so a single (query, subject) hit can span
+multiple rows. We aggregate per (qseqid, sseqid) before applying coverage
+thresholds: qcov / scov are computed as the *union* of HSP intervals on the
+query and subject respectively, divided by qlen / slen. This matches BLAST's
+own `qcovs` definition on the query side and applies the same logic to the
+subject side.
 
 Coverage note
 -------------
-Focal-gene consensus sequences (built from MSAs) are often longer than the individual
-pangenome reference genes.  Because of this, *subject coverage* (scovs = how much of
-the reference gene is covered) is the more meaningful filter for a "complete match",
-whereas query coverage (qcovs) flags whether the whole consensus maps to one reference.
-Both thresholds are applied independently.
+Focal-gene consensus sequences (built from MSAs) are often longer than the
+individual pangenome reference genes, and can split into multiple HSPs against
+a single subject. Aggregating intervals before thresholding avoids spuriously
+dropping multi-HSP hits where each individual HSP is below threshold but the
+union of HSPs is not.
 
 Output
 ------
-mapping.csv   - all hits passing all thresholds, one row per (query, ref) pair.
+mapping.csv   - one row per (query, ref) pair passing all thresholds.
                 Columns:
                   query_id, ref_id, pident, qcov, scov,
-                  qstart, qend, sstart, send, evalue, bitscore,
-                  hit_rank          # 1 = best hit for this query
-unmatched.txt - one query ID per line for queries with no passing hit
+                  bitscore, evalue, n_hsps, hit_rank
+                pident: length-weighted mean across HSPs;
+                bitscore: sum across HSPs; evalue: min across HSPs;
+                hit_rank: 1 = best ref for this query (by aggregated bitscore).
+unmatched.txt - one query ID per line for queries with no passing hit.
 """
 
 import argparse
 import sys
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 
 
@@ -49,6 +56,18 @@ BLAST_COLS = [
     "send",
     "evalue",
     "bitscore",
+]
+
+OUT_COLS = [
+    "query_id",
+    "ref_id",
+    "pident",
+    "qcov",
+    "scov",
+    "bitscore",
+    "evalue",
+    "n_hsps",
+    "hit_rank",
 ]
 
 
@@ -71,6 +90,41 @@ def read_query_ids(fa_path):
             if line.startswith(">"):
                 ids.append(line[1:].split()[0])
     return ids
+
+
+def union_length(intervals):
+    """Length of the union of 1-based inclusive intervals; orientation-agnostic."""
+    norm = sorted((min(s, e), max(s, e)) for s, e in intervals)
+    total, cur_end = 0, 0
+    for s, e in norm:
+        s = max(s, cur_end + 1)
+        if s <= e:
+            total += e - s + 1
+            cur_end = e
+    return total
+
+
+def aggregate_hits(df):
+    """Collapse per-HSP rows into one row per (qseqid, sseqid)."""
+    records = []
+    for (qid, sid), grp in df.groupby(["qseqid", "sseqid"], sort=False):
+        qlen = grp["qlen"].iloc[0]
+        slen = grp["slen"].iloc[0]
+        q_union = union_length(zip(grp["qstart"], grp["qend"]))
+        s_union = union_length(zip(grp["sstart"], grp["send"]))
+        records.append(
+            {
+                "qseqid": qid,
+                "sseqid": sid,
+                "pident": float(np.average(grp["pident"], weights=grp["length"])),
+                "qcov": q_union / qlen * 100,
+                "scov": s_union / slen * 100,
+                "bitscore": float(grp["bitscore"].sum()),
+                "evalue": float(grp["evalue"].min()),
+                "n_hsps": int(len(grp)),
+            }
+        )
+    return pd.DataFrame.from_records(records)
 
 
 def main():
@@ -97,46 +151,41 @@ def main():
             "WARNING: hits file is empty — all queries will be unmatched.",
             file=sys.stderr,
         )
-        passing = df.copy()
+        agg = pd.DataFrame(
+            columns=["qseqid", "sseqid", "pident", "qcov", "scov",
+                     "bitscore", "evalue", "n_hsps"]
+        )
+        passing = agg.copy()
     else:
-        # --- compute per-alignment coverage ---
-        df["qcov"] = (df["length"] / df["qlen"] * 100).round(2)
-        df["scov"] = (df["length"] / df["slen"] * 100).round(2)
+        # --- aggregate per (qseqid, sseqid) before thresholding ---
+        agg = aggregate_hits(df)
+        agg["pident"] = agg["pident"].round(2)
+        agg["qcov"] = agg["qcov"].round(2)
+        agg["scov"] = agg["scov"].round(2)
 
-        # --- apply thresholds ---
-        passing = df[
-            (df["pident"] >= args.min_pident)
-            & (df["qcov"] >= args.min_qcovs)
-            & (df["scov"] >= args.min_scovs)
+        passing = agg[
+            (agg["pident"] >= args.min_pident)
+            & (agg["qcov"] >= args.min_qcovs)
+            & (agg["scov"] >= args.min_scovs)
         ].copy()
 
     print(
-        f"Hits: {len(df)} total, {len(passing)} pass "
-        f"pident>={args.min_pident}  qcov>={args.min_qcovs}  scov>={args.min_scovs}",
+        f"HSPs: {len(df)}; aggregated hits: {len(agg)}; passing "
+        f"pident>={args.min_pident} qcov>={args.min_qcovs} scov>={args.min_scovs}: "
+        f"{len(passing)}",
         file=sys.stderr,
     )
 
-    # --- rank hits within each query (best bitscore = rank 1) ---
+    # --- rank hits within each query (best aggregated bitscore = rank 1) ---
     if not passing.empty:
         passing = passing.sort_values(["qseqid", "bitscore"], ascending=[True, False])
         passing["hit_rank"] = passing.groupby("qseqid").cumcount() + 1
+    else:
+        passing["hit_rank"] = pd.Series(dtype=int)
 
     # --- build final output ---
-    out_cols = [
-        "qseqid",
-        "sseqid",
-        "pident",
-        "qcov",
-        "scov",
-        "qstart",
-        "qend",
-        "sstart",
-        "send",
-        "evalue",
-        "bitscore",
-        "hit_rank",
-    ]
-    out = passing[out_cols].rename(columns={"qseqid": "query_id", "sseqid": "ref_id"})
+    out = passing.rename(columns={"qseqid": "query_id", "sseqid": "ref_id"})
+    out = out.reindex(columns=OUT_COLS)
 
     Path(args.mapping).parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.mapping, index=False)
@@ -155,12 +204,18 @@ def main():
         file=sys.stderr,
     )
 
-    # --- summary of multi-hit queries ---
+    # --- summaries of multi-hit / multi-HSP cases ---
     if not passing.empty:
         multi = passing[passing["hit_rank"] > 1]["qseqid"].nunique()
         if multi:
             print(
-                f"  {multi} queries have >1 passing hit (possible paralogs or multi-gene consensus)",
+                f"  {multi} queries have >1 passing ref (possible paralogs or multi-gene consensus)",
+                file=sys.stderr,
+            )
+        multi_hsp = int((passing["n_hsps"] > 1).sum())
+        if multi_hsp:
+            print(
+                f"  {multi_hsp} passing (query, ref) pairs aggregated >1 HSP",
                 file=sys.stderr,
             )
 

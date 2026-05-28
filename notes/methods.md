@@ -31,7 +31,7 @@ These are a curated panel of 506 genes that were shown in upstream *in vivo* exp
 
 ## Identification of focal genes in the Horesh collection
 
-We map the consensus sequences of our focal genes to the Horesh pangenome reference using nucleotide BLAST, retaining hits with percent identity $\geq$ 85 % and query coverage $\geq$ 85 %. In case of multiple matches we merge the corresponding Horesh clusters together, and genes that fail to match any cluster above the threshold (21 out of 506) are dropped. The output is a restricted presence/absence matrix of focal genes in isolates of the collection, used as input to all downstream analyses.
+We map the consensus sequences of our focal genes to the Horesh pangenome reference using nucleotide BLAST, retaining hits with percent identity $\geq$ 85 % and query coverage $\geq$ 85 %. In case of multiple matches we merge the corresponding Horesh clusters together, and genes that fail to match any cluster above the threshold (19 out of 506) are dropped. The output is a restricted presence/absence matrix of focal genes in isolates of the collection, used as input to all downstream analyses.
 
 ## Identification of high-load strains
 
@@ -45,7 +45,7 @@ $$
 r = \frac{\left(\sum_i f_i\right)^2}{\sum_i f_i^2}
 $$
 
-where $f_i$ is the frequency of the gene in ST $i$ (fraction of ST-$i$ isolates carrying it), summed over STs with ≥10 isolates. $r$ quantifies the effective number of STs in which the gene is commonly found.
+where $f_i$ is the frequency of the gene in ST $i$ (fraction of isolates carrying it), summed over STs with ≥10 isolates. $r$ quantifies the effective number of STs in which the gene is commonly found.
 
 ## Pipeline overview and additional outputs
 
