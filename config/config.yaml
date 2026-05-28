@@ -12,3 +12,5 @@ homology:
   min_pident: 85   # minimum percent identity (blastn nucleotide)
   min_qcovs: 85    # minimum query coverage (lenient: consensus can be longer than reference)
   min_scovs: 85    # minimum subject coverage (strict: require most of the reference gene to be covered)
+
+high_load_threshold: 330  # threshold number of focal genes for "high load" strains

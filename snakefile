@@ -3,15 +3,18 @@ configfile: "config/config.yaml"
 
 localrules:
     horesh_download,
-    extract_focal_cons_seq,
-    extract_focal_gene_info,
-    parse_homology,
 
 
 rule all:
     input:
         expand("results/horesh/{name}", name=config["horesh_download"]),
         "results/presence_absence/focal_vs_horesh.csv",
+        "results/figs/st_boxplots.png",
+        "results/figs/st_boxplots_with_counts.png",
+        "results/figs/gene_enrichment_scatter.png",
+        "results/figs/st_isolates_per_st.png",
+        "results/figs/st_pairwise_distance.png",
+        "results/figs/phylo_heatmap.png",
 
 
 rule horesh_download:
@@ -118,5 +121,121 @@ rule focal_genes_presence_absence:
             --mapping {input.mapping} \
             --presence-absence {input.pa} \
             --output {output} \
+            >{log} 2>&1
+        """
+
+
+rule plot_st_boxplots:
+    input:
+        pa=rules.focal_genes_presence_absence.output,
+        gene_info=rules.extract_focal_gene_info.output,
+        metadata="results/horesh/F1_genome_metadata.csv",
+    output:
+        boxplot=multiext("results/figs/st_boxplots", ".png", ".pdf"),
+        with_counts=multiext("results/figs/st_boxplots_with_counts", ".png", ".pdf"),
+    log:
+        "logs/plot_st_boxplots.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    params:
+        boxplot_base="results/figs/st_boxplots",
+        with_counts_base="results/figs/st_boxplots_with_counts",
+        high_load_threshold=config["high_load_threshold"],
+    shell:
+        """
+        python3 scripts/plots/plot_st_boxplots.py \
+            --pa {input.pa} \
+            --gene-info {input.gene_info} \
+            --metadata {input.metadata} \
+            --out-boxplot-base {params.boxplot_base} \
+            --out-boxplot-with-counts-base {params.with_counts_base} \
+            --high-load-threshold {params.high_load_threshold} \
+            >{log} 2>&1
+        """
+
+
+rule plot_gene_enrichment_scatter:
+    input:
+        pa=rules.focal_genes_presence_absence.output,
+        gene_info=rules.extract_focal_gene_info.output,
+        metadata="results/horesh/F1_genome_metadata.csv",
+        highlight="config/focal_genes/genes_to_highlight.csv",
+    output:
+        fig=multiext("results/figs/gene_enrichment_scatter", ".png", ".pdf"),
+    log:
+        "logs/plot_gene_enrichment_scatter.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    params:
+        out_base="results/figs/gene_enrichment_scatter",
+        high_load_threshold=config["high_load_threshold"],
+    shell:
+        """
+        python3 scripts/plots/plot_gene_enrichment_scatter.py \
+            --pa {input.pa} \
+            --gene-info {input.gene_info} \
+            --metadata {input.metadata} \
+            --highlight {input.highlight} \
+            --out-fig-base {params.out_base} \
+            --high-load-threshold {params.high_load_threshold} \
+            >{log} 2>&1
+        """
+
+
+rule plot_st_phylo_distance:
+    input:
+        tree="results/horesh/tree_500.nwk",
+        metadata="results/horesh/F1_genome_metadata.csv",
+    output:
+        isolates=multiext("results/figs/st_isolates_per_st", ".png", ".pdf"),
+        distance=multiext("results/figs/st_pairwise_distance", ".png", ".pdf"),
+        counts_csv="results/figs/st_isolate_counts.csv",
+        distance_csv="results/figs/st_pairwise_distance.csv",
+    log:
+        "logs/plot_st_phylo_distance.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    params:
+        isolates_base="results/figs/st_isolates_per_st",
+        distance_base="results/figs/st_pairwise_distance",
+        tree_base="results/figs/tree_phylogroup",
+    shell:
+        """
+        python3 scripts/plots/plot_st_phylo_distance.py \
+            --tree {input.tree} \
+            --metadata {input.metadata} \
+            --out-isolates-base {params.isolates_base} \
+            --out-distance-base {params.distance_base} \
+            --out-tree-base {params.tree_base} \
+            --out-counts-csv {output.counts_csv} \
+            --out-distance-csv {output.distance_csv} \
+            >{log} 2>&1
+        """
+
+
+rule plot_phylo_heatmap:
+    input:
+        pa=rules.focal_genes_presence_absence.output,
+        gene_info=rules.extract_focal_gene_info.output,
+        metadata="results/horesh/F1_genome_metadata.csv",
+        tree="results/horesh/tree_500.nwk",
+    output:
+        fig=multiext("results/figs/phylo_heatmap", ".png", ".pdf"),
+        pa_csv="results/figs/phylo_heatmap_pa_matrix.csv",
+    log:
+        "logs/plot_phylo_heatmap.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    params:
+        out_base="results/figs/phylo_heatmap",
+    shell:
+        """
+        python3 scripts/plots/plot_phylo_heatmap.py \
+            --pa {input.pa} \
+            --gene-info {input.gene_info} \
+            --metadata {input.metadata} \
+            --tree {input.tree} \
+            --out-heatmap-base {params.out_base} \
+            --out-pa-csv {output.pa_csv} \
             >{log} 2>&1
         """

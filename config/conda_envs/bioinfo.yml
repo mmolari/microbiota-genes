@@ -8,6 +8,7 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=4.5
+  - adjusttext=1.1.1
   - alsa-lib=1.2.10
   - asttokens=2.4.1
   - attr=2.5.1
