@@ -1,0 +1,5 @@
+horesh_download:
+  F1_genome_metadata.csv: https://ndownloader.figshare.com/files/25552514
+  F3_pan_genome_reference.fa: https://ndownloader.figshare.com/files/26133194
+  F4_complete_presence_absence.csv: https://ndownloader.figshare.com/files/25552529
+  tree_500.nwk: https://ndownloader.figshare.com/files/25552547
