@@ -33,7 +33,6 @@ DEFAULT_PG_COLOR = "lightgray"
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--pa", required=True, help="Focal-gene presence/absence CSV")
-    p.add_argument("--gene-info", required=True, help="Focal gene_info CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--out-boxplot", required=True, nargs="+", help="Output path(s) for the boxplot+counts figure (format inferred from extension; pass one per format)")
     p.add_argument("--high-load-threshold", type=int, required=True, help="Gene-count threshold marking 'high-load' isolates")
@@ -99,10 +98,6 @@ def main():
 
     pa = pd.read_csv(args.pa, index_col=0)
     pa.index = pa.index.astype(int)
-
-    # gene_info is loaded for parity with the original pipeline; even without the
-    # non-softcore subset we keep it available so the input contract matches.
-    _ = pd.read_csv(args.gene_info)
 
     meta = pd.read_csv(args.metadata)
     meta = meta.dropna(subset=["name_in_presence_absence"])

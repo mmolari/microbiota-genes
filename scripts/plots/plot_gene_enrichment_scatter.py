@@ -196,7 +196,7 @@ def main():
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(-0.02, 1.02)
 
-    size_examples = [1, 5, 20, int(len(valid_sts))]
+    size_examples = [1, 5, 20, len(valid_sts)]
     size_handles = [
         plt.scatter(
             [],

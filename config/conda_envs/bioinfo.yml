@@ -1,5 +1,3 @@
-name: 
-  /scicore/home/neher/molari0000/microbial_dset_download/.snakemake/conda/9a0d3abfe02938f166d804ccbce58a31_
 channels:
   - conda-forge
   - bioconda
@@ -204,5 +202,3 @@ dependencies:
   - zipp=3.17.0
   - zlib=1.2.13
   - zstd=1.5.5
-prefix: 
-  /scicore/home/neher/molari0000/microbial_dset_download/.snakemake/conda/9a0d3abfe02938f166d804ccbce58a31_

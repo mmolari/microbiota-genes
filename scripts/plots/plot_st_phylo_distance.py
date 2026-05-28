@@ -33,7 +33,8 @@ PG_PALETTE = {
 }
 DEFAULT_PG_COLOR = "lightgray"
 
-MIN_ISOLATES = 10  # minimum isolates per ST to include in distance matrix
+MIN_ISOLATES = 10           # minimum isolates per ST to include in distance matrix
+MIN_ISOLATES_BARPLOT = 3    # minimum isolates per ST to show on the counts barplot
 
 
 def parse_args():
@@ -109,7 +110,7 @@ def main():
     counts.to_csv(args.out_counts_csv)
 
     # Barplot: isolates per ST
-    plot_df = counts[counts["n_total"] >= 3].copy()
+    plot_df = counts[counts["n_total"] >= MIN_ISOLATES_BARPLOT].copy()
     fig, ax = plt.subplots(figsize=(max(8, 0.13 * len(plot_df)), 5))
     x = np.arange(len(plot_df))
     ax.bar(x, plot_df["n_total"], color="lightgray", label="total in dataset")

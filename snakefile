@@ -31,7 +31,7 @@ rule extract_focal_cons_seq:
     output:
         "results/focal_genes/consensus_sequences.fa",
     shell:
-        "mkdir -p $(dirname {output}) && tar -xJf {input} -C $(dirname {output})"
+        "tar -xJf {input} -C $(dirname {output})"
 
 
 rule extract_focal_gene_info:
@@ -40,7 +40,7 @@ rule extract_focal_gene_info:
     output:
         "results/focal_genes/gene_info.csv",
     shell:
-        "mkdir -p $(dirname {output}) && tar -xJf {input} -C $(dirname {output})"
+        "tar -xJf {input} -C $(dirname {output})"
 
 
 rule blastn_focal_genes:
@@ -127,7 +127,6 @@ rule focal_genes_presence_absence:
 rule plot_st_boxplots:
     input:
         pa=rules.focal_genes_presence_absence.output,
-        gene_info=rules.extract_focal_gene_info.output,
         metadata="results/horesh/F1_genome_metadata.csv",
     output:
         boxplot=multiext("results/figs/st_boxplots", ".png", ".pdf"),
@@ -141,7 +140,6 @@ rule plot_st_boxplots:
         """
         python3 scripts/plots/plot_st_boxplots.py \
             --pa {input.pa} \
-            --gene-info {input.gene_info} \
             --metadata {input.metadata} \
             --out-boxplot {output.boxplot} \
             --high-load-threshold {params.high_load_threshold} \
