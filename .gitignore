@@ -1,3 +1,5 @@
 /results
 /.snakemake
 /logs
+__pycache__
+*.pyc
