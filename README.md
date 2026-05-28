@@ -21,6 +21,6 @@ The main results produced are the figures (in `results/figs/`) and the focal-gen
 
 ## Citation
 
-The dataset in this repository is based on the pangenome collection of [Horesh et al. 2021](https://doi.org/10.1099/mgen.0.000499), published in:
+The dataset used here is from Horesh et al. 2021:
 
-Horesh, Gal, et al. "_A comprehensive and high-quality collection of Escherichia coli genomes and their genes._" Microbial genomics 7.2 (2021): 000499.
+> Horesh, Gal, et al. "A comprehensive and high-quality collection of *Escherichia coli* genomes and their genes." *Microbial Genomics* 7.2 (2021): 000499. [doi:10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)
