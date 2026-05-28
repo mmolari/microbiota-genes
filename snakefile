@@ -5,12 +5,13 @@ localrules:
     horesh_download,
     extract_focal_cons_seq,
     extract_focal_gene_info,
+    parse_homology,
 
 
 rule all:
     input:
         expand("results/horesh/{name}", name=config["horesh_download"]),
-        "results/blastn/focal_vs_horesh_raw.tsv",
+        "results/homology/focal_vs_horesh_mapping.csv",
 
 
 rule horesh_download:
@@ -69,4 +70,33 @@ rule blastn_focal_genes:
             -perc_identity {params.min_pident} \
             -max_target_seqs 20 \
             -out {output.tsv}
+        """
+
+
+rule parse_homology:
+    input:
+        hits=rules.blastn_focal_genes.output.tsv,
+        query_fa=rules.extract_focal_cons_seq.output,
+    output:
+        mapping="results/homology/focal_vs_horesh_mapping.csv",
+        unmatched="results/homology/focal_vs_horesh_unmatched.txt",
+    log:
+        "logs/homology/focal_vs_horesh.log",
+    conda:
+        "config/conda_envs/bioinfo.yml"
+    params:
+        min_pident=config["homology"]["min_pident"],
+        min_qcovs=config["homology"]["min_qcovs"],
+        min_scovs=config["homology"]["min_scovs"],
+    shell:
+        """
+        python3 scripts/parse_homology.py \
+            --hits {input.hits} \
+            --query-fa {input.query_fa} \
+            --mapping {output.mapping} \
+            --unmatched {output.unmatched} \
+            --min-pident {params.min_pident} \
+            --min-qcovs {params.min_qcovs} \
+            --min-scovs {params.min_scovs} \
+            >{log} 2>&1
         """
