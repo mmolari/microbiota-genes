@@ -138,8 +138,6 @@ rule plot_st_boxplots:
     conda:
         "config/conda_envs/bioinfo.yml"
     params:
-        boxplot_base="results/figs/st_boxplots",
-        with_counts_base="results/figs/st_boxplots_with_counts",
         high_load_threshold=config["high_load_threshold"],
     shell:
         """
@@ -147,8 +145,8 @@ rule plot_st_boxplots:
             --pa {input.pa} \
             --gene-info {input.gene_info} \
             --metadata {input.metadata} \
-            --out-boxplot-base {params.boxplot_base} \
-            --out-boxplot-with-counts-base {params.with_counts_base} \
+            --out-boxplot {output.boxplot} \
+            --out-boxplot-with-counts {output.with_counts} \
             --high-load-threshold {params.high_load_threshold} \
             >{log} 2>&1
         """
@@ -167,7 +165,6 @@ rule plot_gene_enrichment_scatter:
     conda:
         "config/conda_envs/bioinfo.yml"
     params:
-        out_base="results/figs/gene_enrichment_scatter",
         high_load_threshold=config["high_load_threshold"],
     shell:
         """
@@ -176,7 +173,7 @@ rule plot_gene_enrichment_scatter:
             --gene-info {input.gene_info} \
             --metadata {input.metadata} \
             --highlight {input.highlight} \
-            --out-fig-base {params.out_base} \
+            --out-fig {output.fig} \
             --high-load-threshold {params.high_load_threshold} \
             >{log} 2>&1
         """
@@ -195,18 +192,13 @@ rule plot_st_phylo_distance:
         "logs/plot_st_phylo_distance.log",
     conda:
         "config/conda_envs/bioinfo.yml"
-    params:
-        isolates_base="results/figs/st_isolates_per_st",
-        distance_base="results/figs/st_pairwise_distance",
-        tree_base="results/figs/tree_phylogroup",
     shell:
         """
         python3 scripts/plots/plot_st_phylo_distance.py \
             --tree {input.tree} \
             --metadata {input.metadata} \
-            --out-isolates-base {params.isolates_base} \
-            --out-distance-base {params.distance_base} \
-            --out-tree-base {params.tree_base} \
+            --out-isolates {output.isolates} \
+            --out-distance {output.distance} \
             --out-counts-csv {output.counts_csv} \
             --out-distance-csv {output.distance_csv} \
             >{log} 2>&1
@@ -226,8 +218,6 @@ rule plot_phylo_heatmap:
         "logs/plot_phylo_heatmap.log",
     conda:
         "config/conda_envs/bioinfo.yml"
-    params:
-        out_base="results/figs/phylo_heatmap",
     shell:
         """
         python3 scripts/plots/plot_phylo_heatmap.py \
@@ -235,7 +225,7 @@ rule plot_phylo_heatmap:
             --gene-info {input.gene_info} \
             --metadata {input.metadata} \
             --tree {input.tree} \
-            --out-heatmap-base {params.out_base} \
+            --out-heatmap {output.fig} \
             --out-pa-csv {output.pa_csv} \
             >{log} 2>&1
         """

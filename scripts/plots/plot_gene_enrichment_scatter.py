@@ -27,7 +27,7 @@ def parse_args():
     p.add_argument("--gene-info", required=True, help="Focal gene_info CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--highlight", required=True, help="Curated highlight CSV (id,name,color)")
-    p.add_argument("--out-fig-base", required=True, help="Output figure path stem (no extension)")
+    p.add_argument("--out-fig", required=True, nargs="+", help="Output figure path(s) (format inferred from extension)")
     p.add_argument("--high-load-threshold", type=int, required=True, help="Gene-count threshold marking 'high-load' isolates")
     return p.parse_args()
 
@@ -221,8 +221,8 @@ def main():
     )
 
     plt.tight_layout()
-    save_fig(fig, args.out_fig_base)
-    print(f"Saved {args.out_fig_base}.(png|pdf)")
+    save_fig(fig, args.out_fig)
+    print(f"Saved {args.out_fig}")
 
 
 if __name__ == "__main__":

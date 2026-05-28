@@ -41,19 +41,16 @@ def parse_args():
     p.add_argument("--tree", required=True, help="Horesh tree_500 Newick")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument(
-        "--out-isolates-base",
+        "--out-isolates",
         required=True,
-        help="Output path stem for isolates-per-ST barplot",
+        nargs="+",
+        help="Output path(s) for the isolates-per-ST barplot (format inferred from extension)",
     )
     p.add_argument(
-        "--out-distance-base",
+        "--out-distance",
         required=True,
-        help="Output path stem for ST pairwise-distance heatmap",
-    )
-    p.add_argument(
-        "--out-tree-base",
-        required=True,
-        help="Output path stem for phylogroup-coloured tree",
+        nargs="+",
+        help="Output path(s) for the ST pairwise-distance heatmap",
     )
     p.add_argument(
         "--out-counts-csv", required=True, help="Output CSV with per-ST isolate counts"
@@ -131,7 +128,7 @@ def main():
     ax.legend()
     ax.set_xlim(-0.5, len(plot_df) - 0.5)
     fig.tight_layout()
-    save_fig(fig, args.out_isolates_base)
+    save_fig(fig, args.out_isolates)
 
     # Pairwise leaf distances via shared root paths
     paths = root_paths(tree)
@@ -216,7 +213,7 @@ def main():
         title_fontsize=10.35,
     )
     fig.tight_layout()
-    save_fig(fig, args.out_distance_base)
+    save_fig(fig, args.out_distance)
 
 
 if __name__ == "__main__":

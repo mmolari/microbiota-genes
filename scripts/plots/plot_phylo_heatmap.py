@@ -41,7 +41,7 @@ def parse_args():
     p.add_argument("--gene-info", required=True, help="Focal gene_info CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--tree", required=True, help="Horesh tree_500 Newick")
-    p.add_argument("--out-heatmap-base", required=True, help="Output path stem for the heatmap figure")
+    p.add_argument("--out-heatmap", required=True, nargs="+", help="Output path(s) for the heatmap figure (format inferred from extension)")
     p.add_argument("--out-pa-csv", required=True, help="Output CSV with the rendered PA sub-matrix")
     return p.parse_args()
 
@@ -324,8 +324,8 @@ def main():
     ax_freq.set_xlabel("freq in full dataset", fontsize=9)
     ax_freq.spines[["top", "right"]].set_visible(False)
 
-    save_fig(fig, args.out_heatmap_base)
-    print(f"wrote {args.out_heatmap_base}.(png|pdf)")
+    save_fig(fig, args.out_heatmap)
+    print(f"wrote {args.out_heatmap}")
 
     # Supplementary CSV
     def _gene_name(gid):
