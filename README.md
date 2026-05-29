@@ -1,6 +1,6 @@
-# microbiota-genes
+# microbiota-associated gene distribution in *E. coli*
 
-Snakemake pipeline that surveys a panel of *focal genes* across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). Focal genes are a curated set of genes that were shown to confer a fitness advantage to *E. coli* isolates colonizing the mouse gut, **only in the presence of a complex microbiota**.
+A simple analysis to survery the distribution of a panel of genes of interest across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). These focal genes were shown to confer a fitness advantage to *E. coli* isolates colonizing the mouse gut, **only in the presence of a complex microbiota**.
 
 You can find in:
 
