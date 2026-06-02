@@ -1,6 +1,6 @@
-# microbiota-associated gene distribution in *E. coli*
+# Competition against the intestinal microbiota selects for pathoadaptive traits in ESBL _E. coli_
 
-A simple analysis to survery the distribution of a panel of genes of interest across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). These focal genes were shown to increase *E. coli* fitness specifically **in the presence of gut microbiota**.
+A simple analysis to survey the distribution of a panel of genes of interest across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). These focal genes were shown to increase *E. coli* fitness specifically **in the presence of gut microbiota**.
 
 You can find in:
 
@@ -19,7 +19,11 @@ snakemake -c4 --use-conda
 
 The main results produced are the figures (in `results/figs/`) and the focal-gene presence/absence matrix (in `results/presence_absence.csv`)
 
-## Citation
+## Citations
+
+This analysis is part of the work described in:
+
+> Pramod Jangir, Leonardo Lemos Rocha, et al. "Competition against the intestinal microbiota selects for pathoadaptive traits in ESBL _E. coli_"; in preparation.
 
 The dataset analyzed here is from Horesh et al. 2021:
 
