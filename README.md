@@ -1,6 +1,6 @@
 # microbiota-associated gene distribution in *E. coli*
 
-A simple analysis to survery the distribution of a panel of genes of interest across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). These focal genes were shown to confer a fitness advantage to *E. coli* isolates colonizing the mouse gut, **only in the presence of a complex microbiota**.
+A simple analysis to survery the distribution of a panel of genes of interest across the *E. coli* species using the Horesh et al. 2021 pangenome dataset ([10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)). These focal genes were shown to increase *E. coli* fitness specifically **in the presence of gut microbiota**.
 
 You can find in:
 
@@ -21,6 +21,6 @@ The main results produced are the figures (in `results/figs/`) and the focal-gen
 
 ## Citation
 
-The dataset used here is from Horesh et al. 2021:
+The dataset analyzed here is from Horesh et al. 2021:
 
 > Horesh, Gal, et al. "A comprehensive and high-quality collection of *Escherichia coli* genomes and their genes." *Microbial Genomics* 7.2 (2021): 000499. [doi:10.1099/mgen.0.000499](https://doi.org/10.1099/mgen.0.000499)

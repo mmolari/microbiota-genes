@@ -21,18 +21,34 @@ import pandas as pd
 from Bio import Phylo
 from matplotlib import colormaps
 from matplotlib.collections import LineCollection
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, hsv_to_rgb, rgb_to_hsv
 from matplotlib.patches import Patch, Rectangle
 from scipy.cluster.hierarchy import linkage, to_tree
 
 from utils import save_fig
 
 
-CORE_FRACTION = 0.95     # genes with freq >= this are treated as core and excluded
-ST_MIN_STRAINS = 5       # min strains per ST to colour-highlight on the ST strip
-HIGHLIGHT_ST = "131"     # ST used to draw the highlight rectangle
+CORE_FRACTION = 0.95  # genes with freq >= this are treated as core and excluded
+ST_MIN_STRAINS = 5  # min strains per ST to colour-highlight on the ST strip
+HIGHLIGHT_ST = "131"  # ST used to draw the highlight rectangle
 HIGHLIGHT_GENE_A = 3258  # yehH — one corner of the highlight rectangle
 HIGHLIGHT_GENE_B = 4518  # other corner of the highlight rectangle
+
+# Fixed phylogroup order so strip colours stay stable across runs. Phylogroups
+# present but absent from this list fall back to trailing palette colours.
+PHYLOGROUP_ORDER = ["A", "B1", "B2", "C", "D", "E", "F", "Shigella"]
+
+
+def _pastel(rgb, blend=0.55):
+    """Lighten an RGB colour toward white (for the strip background)."""
+    rgb = np.asarray(rgb[:3])
+    return tuple(rgb + (1.0 - rgb) * blend)
+
+
+def _saturated(rgb):
+    """Return a more saturated, slightly darker shade (for the on-strip text)."""
+    h, s, v = rgb_to_hsv(np.asarray(rgb[:3]))
+    return tuple(hsv_to_rgb((h, min(1.0, s * 1.3 + 0.1), v * 0.75)))
 
 
 def parse_args():
@@ -41,8 +57,15 @@ def parse_args():
     p.add_argument("--gene-info", required=True, help="Focal gene_info CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--tree", required=True, help="Horesh tree_500 Newick")
-    p.add_argument("--out-heatmap", required=True, nargs="+", help="Output path(s) for the heatmap figure (format inferred from extension)")
-    p.add_argument("--out-pa-csv", required=True, help="Output CSV with the rendered PA sub-matrix")
+    p.add_argument(
+        "--out-heatmap",
+        required=True,
+        nargs="+",
+        help="Output path(s) for the heatmap figure (format inferred from extension)",
+    )
+    p.add_argument(
+        "--out-pa-csv", required=True, help="Output CSV with the rendered PA sub-matrix"
+    )
     return p.parse_args()
 
 
@@ -121,6 +144,8 @@ def main():
     meta = meta.dropna(subset=["name_in_presence_absence"])
     meta["ST"] = meta["ST"].astype(str).str.strip()
     strain_st = meta.set_index("name_in_presence_absence")["ST"].to_dict()
+    meta["Phylogroup"] = meta["Phylogroup"].astype(str).str.strip()
+    strain_phylo = meta.set_index("name_in_presence_absence")["Phylogroup"].to_dict()
 
     gene_info = pd.read_csv(args.gene_info)
     id_to_name = gene_info.set_index("geneId")["gene_name"].to_dict()
@@ -177,6 +202,40 @@ def main():
     strip_arr = np.array(strip_categories).reshape(1, -1)
     strip_cmap = ListedColormap([st_to_color[st] for st in highlight_sts] + ["white"])
 
+    # Phylogroup strip: pastel background per phylogroup + a saturated name label
+    # centred on each phylogroup's largest contiguous block of strains.
+    tip_phylo = [strain_phylo.get(s, "") for s in tip_order]
+    phylo_present = [p for p in PHYLOGROUP_ORDER if p in set(tip_phylo)]
+    phylo_present += sorted({p for p in tip_phylo if p and p not in PHYLOGROUP_ORDER})
+    qual_phylo = list(colormaps["tab10"].colors)
+    assert len(phylo_present) <= len(qual_phylo), (
+        f"too many phylogroups ({len(phylo_present)}) for tab10 palette"
+    )
+    phylo_base = {p: qual_phylo[i] for i, p in enumerate(phylo_present)}
+    phylo_to_idx = {p: i for i, p in enumerate(phylo_present)}
+    n_phylo = len(phylo_present)
+    phylo_categories = [phylo_to_idx.get(p, n_phylo) for p in tip_phylo]
+    phylo_strip_arr = np.array(phylo_categories).reshape(1, -1)
+    phylo_cmap = ListedColormap(
+        [_pastel(phylo_base[p]) for p in phylo_present] + ["white"]
+    )
+
+    # Largest contiguous block per phylogroup (for label placement).
+    phylo_runs = []  # (phylogroup, start, length)
+    i = 0
+    while i < len(tip_phylo):
+        j = i
+        while j < len(tip_phylo) and tip_phylo[j] == tip_phylo[i]:
+            j += 1
+        phylo_runs.append((tip_phylo[i], i, j - i))
+        i = j
+    phylo_label_pos = {}  # phylogroup -> center x of its largest block
+    for p in phylo_present:
+        start, length = max(
+            ((s, n) for pg, s, n in phylo_runs if pg == p), key=lambda t: t[1]
+        )
+        phylo_label_pos[p] = start + length / 2 - 0.5
+
     def gene_label(gid):
         name = id_to_name.get(gid)
         if pd.notna(name) and name not in (None, ""):
@@ -189,7 +248,9 @@ def main():
     y_b = gene_pos.get_loc(HIGHLIGHT_GENE_B)
     y0, y1 = sorted((y_a, y_b))
 
-    hl_st_idx = [i for i, s in enumerate(tip_order) if strain_st.get(s, "") == HIGHLIGHT_ST]
+    hl_st_idx = [
+        i for i, s in enumerate(tip_order) if strain_st.get(s, "") == HIGHLIGHT_ST
+    ]
     assert len(hl_st_idx) > 0, f"no ST{HIGHLIGHT_ST} isolates found in tip_order"
     x0, x1 = min(hl_st_idx), max(hl_st_idx)
     print(f"ST{HIGHLIGHT_ST} block: {len(hl_st_idx)} strains in x=[{x0}, {x1}]")
@@ -199,18 +260,19 @@ def main():
 
     fig = plt.figure(figsize=(14, 22))
     gs = fig.add_gridspec(
-        3,
+        4,
         2,
         width_ratios=(8, 1),
-        height_ratios=(1.2, 0.08, 8),
+        height_ratios=(1.2, 0.08, 0.08, 8),
         hspace=0.02,
         wspace=0.02,
     )
     ax_tree = fig.add_subplot(gs[0, 0])
     ax_legend = fig.add_subplot(gs[0, 1])
-    ax_st = fig.add_subplot(gs[1, 0])
-    ax_heat = fig.add_subplot(gs[2, 0])
-    ax_freq = fig.add_subplot(gs[2, 1])
+    ax_phylo = fig.add_subplot(gs[1, 0])
+    ax_st = fig.add_subplot(gs[2, 0])
+    ax_heat = fig.add_subplot(gs[3, 0])
+    ax_freq = fig.add_subplot(gs[3, 1])
 
     ax_heat.imshow(
         heat.values,
@@ -258,6 +320,43 @@ def main():
     ax_heat.set_yticks(np.arange(n_genes) + 0.5)
     ax_heat.set_yticklabels([gene_label(g) for g in gene_order_clust], fontsize=4)
 
+    ax_phylo.imshow(
+        phylo_strip_arr,
+        aspect="auto",
+        cmap=phylo_cmap,
+        interpolation="none",
+        origin="upper",
+        extent=[-0.5, n_strains - 0.5, 1, 0],
+        vmin=0,
+        vmax=n_phylo,
+    )
+    for p, cx in phylo_label_pos.items():
+        ax_phylo.text(
+            cx,
+            0.5,
+            p,
+            ha="center",
+            va="center",
+            fontsize=7,
+            fontweight="bold",
+            color=_saturated(phylo_base[p]),
+        )
+    ax_phylo.set_xlim(ax_heat.get_xlim())
+    ax_phylo.set_xticks([])
+    ax_phylo.set_yticks([])
+    ax_phylo.text(
+        -0.005,
+        0.5,
+        "Phylogroup",
+        transform=ax_phylo.transAxes,
+        ha="right",
+        va="center",
+        fontsize=8,
+        color="black",
+    )
+    for s in ax_phylo.spines.values():
+        s.set_visible(False)
+
     ax_st.imshow(
         strip_arr,
         aspect="auto",
@@ -271,6 +370,16 @@ def main():
     ax_st.set_xlim(ax_heat.get_xlim())
     ax_st.set_xticks([])
     ax_st.set_yticks([])
+    ax_st.text(
+        -0.005,
+        0.5,
+        "Sequence Type",
+        transform=ax_st.transAxes,
+        ha="right",
+        va="center",
+        fontsize=8,
+        color="black",
+    )
     for s in ax_st.spines.values():
         s.set_visible(False)
 
@@ -299,7 +408,8 @@ def main():
     ]
     ax_legend.legend(
         handles=handles,
-        loc="center",
+        loc="upper right",
+        bbox_to_anchor=(1, 1),
         fontsize=6,
         frameon=False,
         ncol=6,
@@ -340,6 +450,7 @@ def main():
         w = csv.writer(f)
         w.writerow(["geneId", "gene_name"] + list(tip_order))
         w.writerow(["", ""] + [strain_st.get(s, "") for s in tip_order])
+        w.writerow(["", ""] + [strain_phylo.get(s, "") for s in tip_order])
         sub = pa.loc[gene_order_clust, tip_order].astype(int)
         for gid, row in zip(gene_order_clust, sub.values):
             w.writerow([int(gid), _gene_name(gid)] + row.tolist())

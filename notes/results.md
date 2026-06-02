@@ -24,4 +24,4 @@ Mean tip-to-tip phylogenetic distance between isolates of pairs of STs on the Ho
 
 ![Phylogeny × focal-gene presence/absence heatmap](../results/figs/phylo_heatmap.png)
 
-Presence/absence of non-core focal genes (full-dataset frequency < 0.95) across the isolates of the Horesh core-genome tree (shown on top). STs with $\geq 5$ isolates in the tree are coloured according to the legend on the right; remaining isolates are left white. The orange rectangle highlights a ST131-specific region of interest. The right-hand bar plot reports the frequency of each gene in the full dataset.
+Presence/absence of non-core focal genes (full-dataset frequency < 0.95) across the isolates of the Horesh core-genome tree (shown on top). In the color-bar on top we mark the Phylogroup and STs (for STs with $\geq 5$ isolates) of every tip. The orange rectangle highlights a ST131-specific region of interest. The right-hand bar plot reports the frequency of each gene in the full dataset.
