@@ -155,6 +155,7 @@ rule plot_gene_enrichment_scatter:
         highlight="config/focal_genes/genes_to_highlight.csv",
     output:
         fig=multiext("results/figs/gene_enrichment_scatter", ".png", ".pdf"),
+        gene_csv="results/figs/gene_enrichment.csv",
     log:
         "logs/plot_gene_enrichment_scatter.log",
     conda:
@@ -169,6 +170,7 @@ rule plot_gene_enrichment_scatter:
             --metadata {input.metadata} \
             --highlight {input.highlight} \
             --out-fig {output.fig} \
+            --out-csv {output.gene_csv} \
             --high-load-threshold {params.high_load_threshold} \
             >{log} 2>&1
         """

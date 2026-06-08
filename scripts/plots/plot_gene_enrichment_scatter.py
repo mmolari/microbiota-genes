@@ -28,13 +28,13 @@ def parse_args():
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--highlight", required=True, help="Curated highlight CSV (id,name,color)")
     p.add_argument("--out-fig", required=True, nargs="+", help="Output figure path(s) (format inferred from extension)")
+    p.add_argument("--out-csv", required=True, help="Output gene-stats CSV")
     p.add_argument("--high-load-threshold", type=int, required=True, help="Gene-count threshold marking 'high-load' isolates")
     return p.parse_args()
 
 
-def main():
-    args = parse_args()
-
+def load_data(args):
+    """Read and preprocess inputs; return (pa, strain_meta, gene_info, highlight)."""
     pa = pd.read_csv(args.pa, index_col=0)
     pa.index = pa.index.astype(str)
 
@@ -49,11 +49,20 @@ def main():
     highlight = pd.read_csv(args.highlight)
     highlight["id"] = highlight["id"].astype(str)
 
+    return pa, strain_meta, gene_info, highlight
+
+
+def compute_gene_stats(pa, strain_meta, gene_info, high_load_threshold):
+    """Per-gene frequencies and ST participation ratio.
+
+    Returns (genes, n_valid_sts) where `genes` has columns freq_high_load,
+    freq_other, participation, gene_name (indexed by geneId).
+    """
     # High-load / other strains
     total_count = pa.sum(axis=0)
-    high_load_strains = total_count[total_count >= args.high_load_threshold].index
-    other_strains = total_count[total_count < args.high_load_threshold].index
-    print(f"High-load strains (>= {args.high_load_threshold} genes): {len(high_load_strains)}")
+    high_load_strains = total_count[total_count >= high_load_threshold].index
+    other_strains = total_count[total_count < high_load_threshold].index
+    print(f"High-load strains (>= {high_load_threshold} genes): {len(high_load_strains)}")
     print(f"Other strains: {len(other_strains)}")
 
     freq_high_load = pa[high_load_strains].mean(axis=1)
@@ -90,7 +99,11 @@ def main():
     print(f"Genes with freq_high_load > {ENRICHMENT_FOLD} * freq_other: {in_region.sum()}")
     print(genes.loc[in_region].sort_values("freq_high_load", ascending=False).head(30))
 
-    # Plot
+    return genes, len(valid_sts)
+
+
+def plot_enrichment(genes, highlight, n_valid_sts, out_fig):
+    """Render the enrichment scatter (+ marginal histograms) and save to `out_fig`."""
     size_scale = 5
 
     fig = plt.figure(figsize=(8, 7.2))
@@ -196,7 +209,7 @@ def main():
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(-0.02, 1.02)
 
-    size_examples = [1, 5, 20, len(valid_sts)]
+    size_examples = [1, 5, 20, n_valid_sts]
     size_handles = [
         plt.scatter(
             [],
@@ -221,8 +234,24 @@ def main():
     )
 
     plt.tight_layout()
-    save_fig(fig, args.out_fig)
-    print(f"Saved {args.out_fig}")
+    save_fig(fig, out_fig)
+    print(f"Saved {out_fig}")
+
+
+def main():
+    args = parse_args()
+
+    pa, strain_meta, gene_info, highlight = load_data(args)
+    genes, n_valid_sts = compute_gene_stats(
+        pa, strain_meta, gene_info, args.high_load_threshold
+    )
+
+    out = genes.rename_axis("gene_id").reset_index()
+    out = out[["gene_id", "gene_name", "freq_high_load", "freq_other", "participation"]]
+    out.to_csv(args.out_csv, index=False)
+    print(f"Saved {args.out_csv}")
+
+    plot_enrichment(genes, highlight, n_valid_sts, args.out_fig)
 
 
 if __name__ == "__main__":
