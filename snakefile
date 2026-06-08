@@ -130,6 +130,7 @@ rule plot_st_boxplots:
         metadata="results/horesh/F1_genome_metadata.csv",
     output:
         boxplot=multiext("results/figs/st_boxplots", ".png", ".pdf"),
+        isolate_csv="results/figs/isolate_gene_counts.csv",
     log:
         "logs/plot_st_boxplots.log",
     conda:
@@ -142,6 +143,7 @@ rule plot_st_boxplots:
             --pa {input.pa} \
             --metadata {input.metadata} \
             --out-boxplot {output.boxplot} \
+            --out-csv {output.isolate_csv} \
             --high-load-threshold {params.high_load_threshold} \
             >{log} 2>&1
         """

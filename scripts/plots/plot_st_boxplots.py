@@ -17,6 +17,9 @@ from utils import save_fig
 
 MIN_ST_SIZE = 10  # min isolates per ST to include
 
+COUNT_COL = "n_genes"
+COUNT_LABEL = "tot n. of genes in isolate"
+
 PG_PALETTE = {
     "A": "#66c2a5",
     "B1": "#fc8d62",
@@ -35,8 +38,58 @@ def parse_args():
     p.add_argument("--pa", required=True, help="Focal-gene presence/absence CSV")
     p.add_argument("--metadata", required=True, help="Horesh F1 genome metadata CSV")
     p.add_argument("--out-boxplot", required=True, nargs="+", help="Output path(s) for the boxplot+counts figure (format inferred from extension; pass one per format)")
+    p.add_argument("--out-csv", required=True, help="Output per-isolate gene-count CSV")
     p.add_argument("--high-load-threshold", type=int, required=True, help="Gene-count threshold marking 'high-load' isolates")
     return p.parse_args()
+
+
+def load_data(args):
+    """Read and preprocess inputs; return (pa, meta)."""
+    pa = pd.read_csv(args.pa, index_col=0)
+    pa.index = pa.index.astype(int)
+
+    meta = pd.read_csv(args.metadata)
+    meta = meta.dropna(subset=["name_in_presence_absence"])
+    meta["Phylogroup"] = meta["Phylogroup"].replace({"Not determined": "Not Determined"})
+
+    return pa, meta
+
+
+def compute_isolate_counts(pa, meta):
+    """Per-isolate focal-gene count with ST and phylogroup, over all pa columns."""
+    strain_meta = meta.set_index("name_in_presence_absence")
+    counts = pd.DataFrame({COUNT_COL: pa.sum(axis=0)})
+    counts["ST"] = strain_meta["ST"].reindex(counts.index)
+    counts["Phylogroup"] = strain_meta["Phylogroup"].reindex(counts.index)
+    counts.index.name = "isolate"
+    print(f"Isolates: {len(counts)}")
+    return counts
+
+
+def prepare_plot_data(isolate_counts, meta):
+    """Filter to valid STs and build plot ordering/palette.
+
+    Returns (count_df, st_order, palette, st_to_pg).
+    """
+    count_df = isolate_counts.dropna(subset=["ST"]).copy()
+    count_df = count_df[~count_df["ST"].astype(str).str.endswith("~")]
+
+    st_counts = count_df["ST"].value_counts()
+    valid_sts = st_counts[st_counts >= MIN_ST_SIZE].index
+    count_df = count_df[count_df["ST"].isin(valid_sts)]
+
+    print(f"Strains after filtering: {len(count_df)}")
+    print(f"Valid STs (>={MIN_ST_SIZE} members): {len(valid_sts)}")
+
+    st_to_pg = {}
+    for st in valid_sts:
+        pg = meta[meta["ST"].astype(str) == str(st)]["Phylogroup"].mode()
+        st_to_pg[st] = pg.iloc[0] if len(pg) > 0 else "Not Determined"
+
+    st_order = count_df.groupby("ST")[COUNT_COL].median().sort_values().index
+    palette = {st: PG_PALETTE.get(st_to_pg.get(st, "?"), DEFAULT_PG_COLOR) for st in st_order}
+
+    return count_df, st_order, palette, st_to_pg
 
 
 def draw_st_boxplot(ax, count_df, col, label, st_order, palette, st_to_pg, high_load_threshold):
@@ -93,42 +146,8 @@ def draw_st_boxplot(ax, count_df, col, label, st_order, palette, st_to_pg, high_
     )
 
 
-def main():
-    args = parse_args()
-
-    pa = pd.read_csv(args.pa, index_col=0)
-    pa.index = pa.index.astype(int)
-
-    meta = pd.read_csv(args.metadata)
-    meta = meta.dropna(subset=["name_in_presence_absence"])
-    meta["Phylogroup"] = meta["Phylogroup"].replace({"Not determined": "Not Determined"})
-    strain_to_st = meta.set_index("name_in_presence_absence")["ST"]
-
-    col = "all_genes"
-    label = "tot n. of genes in isolate"
-    gene_idx = pa.index
-    print(f"Subset: {col} ({len(gene_idx)} genes)")
-
-    count_df = pd.DataFrame({col: pa.loc[gene_idx].sum(axis=0)})
-    count_df["ST"] = strain_to_st.reindex(count_df.index)
-    count_df = count_df.dropna(subset=["ST"])
-    count_df = count_df[~count_df["ST"].astype(str).str.endswith("~")]
-
-    st_counts = count_df["ST"].value_counts()
-    valid_sts = st_counts[st_counts >= MIN_ST_SIZE].index
-    count_df = count_df[count_df["ST"].isin(valid_sts)]
-
-    print(f"Strains after filtering: {len(count_df)}")
-    print(f"Valid STs (>={MIN_ST_SIZE} members): {len(valid_sts)}")
-
-    st_to_pg = {}
-    for st in valid_sts:
-        pg = meta[meta["ST"].astype(str) == str(st)]["Phylogroup"].mode()
-        st_to_pg[st] = pg.iloc[0] if len(pg) > 0 else "Not Determined"
-
-    st_order = count_df.groupby("ST")[col].median().sort_values().index
-    palette = {st: PG_PALETTE.get(st_to_pg.get(st, "?"), DEFAULT_PG_COLOR) for st in st_order}
-
+def plot_st_boxplots(count_df, st_order, palette, st_to_pg, high_load_threshold, out_boxplot):
+    """Render the per-ST boxplot + isolate-count sidebar and save to `out_boxplot`."""
     fig, (ax_box, ax_bar) = plt.subplots(
         1,
         2,
@@ -136,7 +155,7 @@ def main():
         sharey=True,
         gridspec_kw={"width_ratios": [4, 1], "wspace": 0.05},
     )
-    draw_st_boxplot(ax_box, count_df, col, label, st_order, palette, st_to_pg, args.high_load_threshold)
+    draw_st_boxplot(ax_box, count_df, COUNT_COL, COUNT_LABEL, st_order, palette, st_to_pg, high_load_threshold)
     st_sizes = count_df["ST"].value_counts().reindex(st_order)
     ax_bar.barh(
         range(len(st_order)),
@@ -151,8 +170,21 @@ def main():
     ax_bar.spines[["top", "right"]].set_visible(False)
     ax_bar.set_ylim(len(st_order) - 0.5, -0.5)
     plt.tight_layout()
-    save_fig(fig, args.out_boxplot)
-    print(f"Saved {args.out_boxplot}")
+    save_fig(fig, out_boxplot)
+    print(f"Saved {out_boxplot}")
+
+
+def main():
+    args = parse_args()
+
+    pa, meta = load_data(args)
+
+    isolate_counts = compute_isolate_counts(pa, meta)
+    isolate_counts.to_csv(args.out_csv)
+    print(f"Saved {args.out_csv}")
+
+    count_df, st_order, palette, st_to_pg = prepare_plot_data(isolate_counts, meta)
+    plot_st_boxplots(count_df, st_order, palette, st_to_pg, args.high_load_threshold, args.out_boxplot)
 
 
 if __name__ == "__main__":
