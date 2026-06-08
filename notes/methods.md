@@ -53,6 +53,8 @@ Our results are summarized in the figures described in [results.md](results.md).
 
 - `results/presence_absence.csv` — gene presence/absence matrix of focal genes in the Horesh collection.
 - `results/homology/focal_vs_horesh_mapping.csv` and `focal_vs_horesh_unmatched.txt` — focal-gene $\to$ Horesh-cluster BLAST mapping and the list of focal genes with no acceptable hit.
+- `results/figs/isolate_gene_counts.csv` — per-isolate total focal-gene count with the isolate's ST and phylogroup.
+- `results/figs/gene_enrichment.csv` — per focal gene: frequency in high-load vs other strains and the ST participation ratio.
 - `results/figs/st_isolate_counts.csv` — per-ST counts (in the dataset and in the sub-sampled core-genome tree).
 - `results/figs/st_pairwise_distance.csv` — ST $\times$ ST average pairwise-distance matrix, computed from the core-genome tree of the Horesh collection.
 - `results/figs/phylo_heatmap_pa_matrix.csv` — sub-matrix of the larger presence/absence matrix rendered in the phylo heatmap.
